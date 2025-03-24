@@ -75,6 +75,7 @@ def find_route():
     result = shortest_path(metro_graph, start, end)
     return jsonify({"result": result})
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 1000))
-    app.run(host='0.0.0.0', port=port)
+if __name__ != "__main__":
+    gunicorn_app = app  # برای اجرا در Render
+else:
+    app.run(host="0.0.0.0", port=8000, debug=True)
