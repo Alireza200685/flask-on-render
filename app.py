@@ -78,5 +78,5 @@ def find_route():
 if __name__ != "__main__":
     gunicorn_app = app  # برای اجرا در Render
 else:
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=True)
