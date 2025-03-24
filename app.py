@@ -1,6 +1,5 @@
-from flask import Flask, request, jsonify
-from collections import deque
 import os
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
@@ -65,18 +64,20 @@ def shortest_path(graph, start, end):
                 queue.append((neighbor, path + [neighbor]))
     return "مسیر یافت نشد"
 
-@app.route('/find_route', methods=['POST'])
+@app.route("/")
+def home():
+    return "API is running on Railway!"
+
+@app.route("/find-route", methods=["POST"])
 def find_route():
     data = request.get_json()
-    if not data or 'start' not in data or 'end' not in data:
+    if not data or "start" not in data or "end" not in data:
         return jsonify({"error": "لطفاً مبدا و مقصد را وارد کنید"}), 400
-    start = data['start']
-    end = data['end']
+    start = data["start"]
+    end = data["end"]
     result = shortest_path(metro_graph, start, end)
     return jsonify({"result": result})
 
-if __name__ != "__main__":
-    gunicorn_app = app  # برای اجرا در Render
-else:
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))  # Railway خودش پورت رو مشخص می‌کنه
+    app.run(host="0.0.0.0", port=port)
