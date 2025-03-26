@@ -5,6 +5,10 @@ from collections import deque
 app = Flask(__name__)
 
 # تعریف خطوط مترو با همه ایستگاه‌ها
+
+app = Flask(__name__)
+
+# تعریف خطوط مترو با همه ایستگاه‌ها
 lines = {
     "Line1": ["تجریش", "قیطریه", "شهید صدر", "قلهک", "دکتر شریعتی", "میرداماد",
               "شهید حقانی", "شهید همت", "مصلی امام خمینی", "شهید بهشتی", "شهید مفتح",
@@ -57,11 +61,29 @@ for line, stations in lines.items():
         if i < len(stations) - 1:
             metro_graph[stations[i]][stations[i + 1]] = 1
 
-def shortest_path_with_min_line_changes(graph, start, end):
+# تابع حدس خط شروع بر اساس مبدا و مقصد
+def guess_start_line(start, end):
+    start_lines = station_lines[start]
+    end_lines = station_lines[end]
+    # اگه خط مشترکی بین مبدا و مقصد باشه، اون رو انتخاب کن
+    common_lines = set(start_lines) & set(end_lines)
+    if common_lines:
+        return common_lines.pop()
+    # اگه مقصد فقط توی یه خط باشه، خطی از مبدا انتخاب کن که به مقصد راه داشته باشه
+    elif len(end_lines) == 1:
+        target_line = end_lines[0]
+        for line in start_lines:
+            # چک کن آیا ایستگاه مشترکی بین خط مبدا و خط مقصد هست
+            if any(station in lines[line] and station in lines[target_line] for station in metro_graph):
+                return line
+    # پیش‌فرض: اولین خط مبدا
+    return start_lines[0]
+
+def shortest_path_with_min_line_changes(graph, start, end, start_line):
     if start not in graph or end not in graph:
         return None, None
     
-    queue = deque([(start, [start], {station_lines[start][0]}, 0)])
+    queue = deque([(start, [start], {start_line}, 0)])
     visited = set()
     best_path = None
     min_changes = float('inf')
@@ -83,7 +105,7 @@ def shortest_path_with_min_line_changes(graph, start, end):
                 neighbor_lines = set(station_lines[neighbor])
                 if not (new_used_lines & neighbor_lines):
                     new_changes += 1
-                    new_used_lines.add(list(neighbor_lines)[0])
+                    new_used_lines.add(next(line for line in neighbor_lines if neighbor in lines[line]))
                 
                 if new_changes <= min_changes:
                     queue.append((neighbor, path + [neighbor], new_used_lines, new_changes))
@@ -99,21 +121,22 @@ def get_direction(current_station, next_station, line):
     return end if next_idx > curr_idx else start
 
 # نمایش مسیر با دستورات تعویض خط
-def get_path_instructions(path, changes):
+def get_path_instructions(path, changes, start_line):
     if not path:
         return f"مسیر یافت نشد! با {changes} تعویض خط"
     
     instructions = [f"مسیر با {changes} تعویض خط:"]
-    current_line = station_lines[path[0]][0]  # خط اولیه
+    current_line = start_line
     for i in range(len(path) - 1):
         current_station = path[i]
         next_station = path[i + 1]
         next_lines = set(station_lines[next_station])
         
-        # اگه خط عوض می‌شه
         if not (current_line in next_lines):
-            new_line = [line for line in next_lines if line != current_line][0]
-            direction = get_direction(next_station, path[i + 2] if i + 2 < len(path) else next_station, new_line)
+            next_next_station = path[i + 2] if i + 2 < len(path) else next_station
+            new_line_candidates = [line for line in next_lines if next_station in lines[line] and (next_next_station in lines[line] or next_station == path[-1])]
+            new_line = new_line_candidates[0] if new_line_candidates else next_lines.pop()
+            direction = get_direction(next_station, next_next_station, new_line)
             instructions.append(f"{current_station}: خط {current_line} - اینجا پیاده شید و به خط {new_line} به سمت {direction} سوار شید")
             current_line = new_line
         else:
@@ -123,7 +146,6 @@ def get_path_instructions(path, changes):
             else:
                 instructions.append(f"{current_station}: خط {current_line}")
 
-    # ایستگاه آخر
     instructions.append(f"{path[-1]}: خط {current_line} - اینجا پیاده شید")
     return "\n".join(instructions)
 
@@ -139,10 +161,11 @@ def find_route():
     
     start = data["start"]
     end = data["end"]
-    path, changes = shortest_path_with_min_line_changes(metro_graph, start, end)
-    result = get_path_instructions(path, changes)
+    start_line = guess_start_line(start, end)
+    path, changes = shortest_path_with_min_line_changes(metro_graph, start, end, start_line)
+    result = get_path_instructions(path, changes, start_line)
     return jsonify({"result": result})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Railway خودش پورت رو مشخص می‌کنه
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
