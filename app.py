@@ -4,7 +4,6 @@ from collections import deque
 
 app = Flask(__name__)
 
-# تعریف خطوط مترو با همه ایستگاه‌ها
 
 app = Flask(__name__)
 
