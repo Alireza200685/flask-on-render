@@ -4,9 +4,6 @@ from collections import deque
 
 app = Flask(__name__)
 
-
-app = Flask(__name__)
-
 # تعریف خطوط مترو با همه ایستگاه‌ها
 lines = {
     "Line1": ["تجریش", "قیطریه", "شهید صدر", "قلهک", "دکتر شریعتی", "میرداماد",
@@ -28,7 +25,7 @@ lines = {
     "Line5": ["صادقیه", "ارم سبز", "استادیوم ازادی", "چیتگر", "ایران خودرو", "ورداورد",
               "گرمدره", "اتمسفر", "کرج", "محمد شهر", "گلشهر", "شهید سلیمانی"],
     "Line6": ["حرم عبدالعظیم", "میدان حضرت عبدالعظیم", "ابن بابویه", "چشمه علی", "دولت اباد", "کیان شهر",
-              "بعثت", "شهید رضایی", "میدان خراسان", "شهدای هفده شهریور", "امیر کبیر", "میدان شهدا",
+              "بعثت", "شهید رضایی", "میدان خراسان", "شهدای هفده شهریور", "امیرکبیر", "میدان شهدا",
               "امام حسین", "سرباز", "بهارشیراز", "شهدای هفتم تیر", "شهید نجات اللهی",
               "میدان ولیعصر", "پارک لاله", "کارگر", "دانشگاه تربیت مدرس", "شهرک ازمایش", "مرزداران",
               "یادگار امام", "شهید اشرفی اصفهانی", "شهید ستاری", "ایت اله کاشانی", "شهر زیبا", "شهران", "شهدای کن", "کوهسار"],
@@ -64,20 +61,17 @@ for line, stations in lines.items():
 def guess_start_line(start, end):
     start_lines = station_lines[start]
     end_lines = station_lines[end]
-    # اگه خط مشترکی بین مبدا و مقصد باشه، اون رو انتخاب کن
     common_lines = set(start_lines) & set(end_lines)
     if common_lines:
         return common_lines.pop()
-    # اگه مقصد فقط توی یه خط باشه، خطی از مبدا انتخاب کن که به مقصد راه داشته باشه
     elif len(end_lines) == 1:
         target_line = end_lines[0]
         for line in start_lines:
-            # چک کن آیا ایستگاه مشترکی بین خط مبدا و خط مقصد هست
             if any(station in lines[line] and station in lines[target_line] for station in metro_graph):
                 return line
-    # پیش‌فرض: اولین خط مبدا
     return start_lines[0]
 
+# پیدا کردن بهترین مسیر با کمترین تعویض
 def shortest_path_with_min_line_changes(graph, start, end, start_line):
     if start not in graph or end not in graph:
         return None, None
@@ -111,13 +105,17 @@ def shortest_path_with_min_line_changes(graph, start, end, start_line):
     
     return best_path, min_changes if best_path else None
 
-# تابع برای پیدا کردن جهت حرکت
+# تابع برای پیدا کردن جهت حرکت (ایستگاه پایانی خط)
 def get_direction(current_station, next_station, line):
-    start, end = line_directions[line]
     stations = lines[line]
     curr_idx = stations.index(current_station)
     next_idx = stations.index(next_station)
-    return end if next_idx > curr_idx else start
+    # اگه به سمت جلو می‌ریم، ایستگاه آخر خط رو برگردون
+    if next_idx > curr_idx:
+        return line_directions[line][1]  # ایستگاه پایانی
+    # اگه به سمت عقب می‌ریم، ایستگاه اول خط رو برگردون
+    else:
+        return line_directions[line][0]  # ایستگاه ابتدایی
 
 # نمایش مسیر با دستورات تعویض خط
 def get_path_instructions(path, changes, start_line):
@@ -144,7 +142,7 @@ def get_path_instructions(path, changes, start_line):
                 instructions.append(f"{current_station}: خط {current_line} به سمت {direction} سوار شید")
             else:
                 instructions.append(f"{current_station}: خط {current_line}")
-
+    
     instructions.append(f"{path[-1]}: خط {current_line} - اینجا پیاده شید")
     return "\n".join(instructions)
 
