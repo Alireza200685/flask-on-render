@@ -122,7 +122,7 @@ def get_path_instructions(path, changes, start_line):
     if not path:
         return f"مسیر یافت نشد! با {changes} تعویض خط"
     
-    # instructions = [f"مسیر با {changes} تعویض خط:"]
+    instructions = [f"مسیر با {changes} تعویض خط:"]
     current_line = start_line
     for i in range(len(path) - 1):
         current_station = path[i]
@@ -134,19 +134,17 @@ def get_path_instructions(path, changes, start_line):
             new_line_candidates = [line for line in next_lines if next_station in lines[line] and (next_next_station in lines[line] or next_station == path[-1])]
             new_line = new_line_candidates[0] if new_line_candidates else next_lines.pop()
             direction = get_direction(next_station, next_next_station, new_line)
-            # instructions.append(f"{current_station}: خط {current_line} - اینجا پیاده شید و به خط {new_line} به سمت {direction} سوار شید")
+            instructions.append(f"{current_station}: خط {current_line} - اینجا پیاده شید و به خط {new_line} به سمت {direction} سوار شید")
             current_line = new_line
         else:
-            pass
-    #         direction = get_direction(current_station, next_station, current_line)
-    #         if i == 0:
-    #             # instructions.append(f"{current_station}: خط {current_line} به سمت {direction} سوار شید")
-    #         else:
-    #             # instructions.append(f"{current_station}: خط {current_line}")
-    #             pass
+            direction = get_direction(current_station, next_station, current_line)
+            if i == 0:
+                instructions.append(f"{current_station}: خط {current_line} به سمت {direction} سوار شید")
+            else:
+                instructions.append(f"{current_station}: خط {current_line}")
     
-    # instructions.append(f"{path[-1]}: خط {current_line} - اینجا پیاده شید")
-    # return "\n".join(instructions)
+    instructions.append(f"{path[-1]}: خط {current_line} - اینجا پیاده شید")
+    return "\n".join(instructions)
 
 @app.route("/")
 def home():
